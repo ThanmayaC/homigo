@@ -1,8 +1,20 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import PreferenceForm from "./pages/PreferenceForm";
+import MatchResult from "./pages/MatchResult";
+
 function App() {
   return (
-    <h1 className="text-5xl text-blue-600 text-center mt-20">
-      Homigo
-    </h1>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/preferences" element={<PreferenceForm />} />
+        <Route path="/match" element={<MatchResult />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
+
 export default App;
