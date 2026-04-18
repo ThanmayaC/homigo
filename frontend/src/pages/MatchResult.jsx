@@ -10,7 +10,11 @@ export default function MatchResult() {
       "Compatible study environment"
     ]
   };
+  const settings = JSON.parse(localStorage.getItem("systemSettings"));
 
+if (!settings?.resultsPublished) {
+  return <p>Results not published yet</p>;
+}
   return (
     <div className="min-h-screen text-black p-6 relative overflow-hidden
                 bg-gradient-to-br from-blue-100 via-white to-green-100">
