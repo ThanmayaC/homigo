@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 export default function MatchingControl() {
   const [status, setStatus] = useState("");
-  const navigate = useNavigate();
 
   const runMatching = async () => {
     try {
@@ -20,7 +18,7 @@ export default function MatchingControl() {
         return;
       }
 
-      setStatus("✅ Matching completed");
+      setStatus(`✅ ${data.count} matches created`);
 
     } catch (err) {
       console.error(err);
@@ -35,7 +33,7 @@ export default function MatchingControl() {
         Matching Control
       </h1>
 
-      <div className="bg-white p-6 rounded-xl shadow space-y-4">
+      <div className="bg-white p-6 rounded-xl shadow">
 
         <button
           onClick={runMatching}
@@ -44,16 +42,10 @@ export default function MatchingControl() {
           Run Matching
         </button>
 
-        <button
-          onClick={() => navigate("/admin/results")}
-          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg"
-        >
-          View Matches
-        </button>
-
         <p className="mt-4 text-gray-700">{status}</p>
 
       </div>
+
     </div>
   );
 }

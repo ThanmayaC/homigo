@@ -1,170 +1,225 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export default function PreferenceForm() {
   const [form, setForm] = useState({
+    branch: "",
     diet: "",
     sleep: "",
     cleanliness: "",
     study: "",
     noise: "",
     personality: "",
+    studyIntensity: "",
+    dealBreaker: "",
     knownPeer: ""
   });
 
-  const [system, setSystem] = useState(null);
-  const [hasPeer, setHasPeer] = useState(false);
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-  const navigate = useNavigate();
+  const res = await fetch("http://localhost:5000/api/system");
+const settings = await res.json();
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/system?ts=" + Date.now())
-      .then(res => res.json())
-      .then(data => setSystem(data));
-  }, []);
+if (!settings.submissionsOpen) {
+  alert("Submissions are closed");
+  return;
+}
 
-  if (!system) return <h2>Loading...</h2>;
+  if (
+    !form.branch ||
+    !form.diet ||
+    !form.sleep ||
+    !form.cleanliness ||
+    !form.study ||
+    !form.noise ||
+    !form.personality ||
+    !form.studyIntensity
+  ) {
+    alert("Please fill all required fields");
+    return;
+  }
 
-  const deadlinePassed =
-    system.deadline && new Date(system.deadline) < new Date();
+  try {
+    const regNo = localStorage.getItem("user");
 
-  const handleSubmit = async () => {
-    if (deadlinePassed) {
-      alert("Deadline passed");
-      return;
-    }
+    console.log("regNo:", regNo); // 🔥 DEBUG
 
-    const regNo = localStorage.getItem("regNo");
+    const payload = {
+      ...form,
+      regNo
+    };
 
-    await fetch("http://localhost:5000/api/preferences", {
+    const res = await fetch("http://localhost:5000/api/preferences", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        ...form,
-        knownPeer: hasPeer ? form.knownPeer : "",
-        regNo
-      })
+      body: JSON.stringify(payload)
     });
 
-    alert("Preferences Submitted");
-    navigate("/dashboard");
-  };
+    // 🔥 IMPORTANT FIX
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Backend error:", text);
+      alert("Backend error: " + text);
+      return;
+    }
+
+    const data = await res.json();
+
+    console.log("Saved:", data);
+    alert("Preferences Saved ✅");
+
+  } catch (err) {
+    console.error("Frontend error:", err);
+    alert("Error saving preferences");
+  }
+};
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-green-100 flex justify-center items-center p-6">
+    <div className="min-h-screen text-black p-6 relative overflow-hidden
+                bg-gradient-to-br from-blue-100 via-white to-green-100">
 
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg">
+      {/* Background */}
+      <div className="absolute w-96 h-96 bg-blue-300/30 blur-3xl top-[-100px] left-[-100px] animate-float"></div>
+      <div className="absolute w-96 h-96 bg-green-300/30 blur-3xl bottom-[-120px] right-[-100px] animate-float"></div>
 
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">
-          Fill Your Preferences
-        </h2>
+      <div className="relative z-10 max-w-xl mx-auto">
 
-        {/* 🔥 TOGGLE */}
-        <div className="mb-4">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={hasPeer}
-              onChange={() => setHasPeer(!hasPeer)}
-            />
-            <span>I already have a preferred roommate</span>
-          </label>
-        </div>
+        <h1 className="text-3xl font-bold text-blue-600 mb-6">
+          Roommate Preferences
+        </h1>
 
-        {/* 🔥 CONDITIONAL UI */}
-        {hasPeer ? (
-          <input
-            placeholder="Enter Friend's RegNo"
-            className="w-full p-3 border rounded mb-4"
-            onChange={(e) =>
-              setForm({ ...form, knownPeer: e.target.value })
-            }
-          />
-        ) : (
-          <>
-            <select
-              className="w-full p-3 border rounded mb-3"
-              onChange={(e) => setForm({ ...form, diet: e.target.value })}
-            >
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white backdrop-blur-lg border border-blue-200
+                     rounded-2xl p-6 space-y-5 shadow-lg"
+        >
+
+          {/* Branch */}
+          <div>
+            <label className="text-sm text-gray-600">Branch</label>
+            <select className="input" onChange={(e) => setForm({ ...form, branch: e.target.value })}>
+              <option value="">Select Branch</option>
+              <option>CSE</option>
+              <option>IT</option>
+              <option>ECE</option>
+              <option>EEE</option>
+              <option>MECH</option>
+              <option>CIVIL</option>
+            </select>
+          </div>
+
+          {/* Diet */}
+          <div>
+            <label className="text-sm text-gray-600">Diet</label>
+            <select className="input" onChange={(e) => setForm({ ...form, diet: e.target.value })}>
               <option value="">Select Diet</option>
               <option>Veg</option>
               <option>Non-Veg</option>
+              <option>Eggetarian</option>
             </select>
+          </div>
 
-            <select
-              className="w-full p-3 border rounded mb-3"
-              onChange={(e) => setForm({ ...form, sleep: e.target.value })}
-            >
-              <option value="">Sleep Habit</option>
+          {/* Sleep */}
+          <div>
+            <label className="text-sm text-gray-600">Sleep Schedule</label>
+            <select className="input" onChange={(e) => setForm({ ...form, sleep: e.target.value })}>
+              <option value="">Select</option>
               <option>Early</option>
+              <option>Moderate</option>
               <option>Late</option>
             </select>
+          </div>
 
-            <select
-              className="w-full p-3 border rounded mb-3"
-              onChange={(e) =>
-                setForm({ ...form, cleanliness: e.target.value })
-              }
-            >
-              <option value="">Cleanliness</option>
+          {/* Cleanliness */}
+          <div>
+            <label className="text-sm text-gray-600">Cleanliness Level</label>
+            <select className="input" onChange={(e) => setForm({ ...form, cleanliness: e.target.value })}>
+              <option value="">Select</option>
               <option>Low</option>
               <option>Medium</option>
               <option>High</option>
             </select>
+          </div>
 
-            <select
-              className="w-full p-3 border rounded mb-3"
-              onChange={(e) => setForm({ ...form, study: e.target.value })}
-            >
-              <option value="">Study Style</option>
+          {/* Study */}
+          <div>
+            <label className="text-sm text-gray-600">Study Environment</label>
+            <select className="input" onChange={(e) => setForm({ ...form, study: e.target.value })}>
+              <option value="">Select</option>
               <option>Silent</option>
+              <option>Moderate Noise</option>
               <option>Interactive</option>
             </select>
+          </div>
 
-            <select
-              className="w-full p-3 border rounded mb-3"
-              onChange={(e) => setForm({ ...form, noise: e.target.value })}
-            >
-              <option value="">Noise Level</option>
-              <option>Quiet</option>
-              <option>Moderate</option>
-              <option>Loud</option>
+          {/* Noise */}
+          <div>
+            <label className="text-sm text-gray-600">Noise Tolerance</label>
+            <select className="input" onChange={(e) => setForm({ ...form, noise: e.target.value })}>
+              <option value="">Select</option>
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
             </select>
+          </div>
 
-            <select
-              className="w-full p-3 border rounded mb-4"
-              onChange={(e) =>
-                setForm({ ...form, personality: e.target.value })
-              }
-            >
-              <option value="">Personality</option>
+          {/* Personality */}
+          <div>
+            <label className="text-sm text-gray-600">Personality Type</label>
+            <select className="input" onChange={(e) => setForm({ ...form, personality: e.target.value })}>
+              <option value="">Select</option>
               <option>Introvert</option>
+              <option>Ambivert</option>
               <option>Extrovert</option>
             </select>
-          </>
-        )}
+          </div>
 
-        {/* SUBMIT */}
-        <button
-          onClick={handleSubmit}
-          disabled={deadlinePassed}
-          className={`w-full py-3 rounded-xl text-white transition ${
-            deadlinePassed
-              ? "bg-gray-400"
-              : "bg-gradient-to-r from-blue-500 to-green-500 hover:scale-105"
-          }`}
-        >
-          Submit Preferences
-        </button>
+          {/* Study Intensity */}
+          <div>
+            <label className="text-sm text-gray-600">Study Intensity</label>
+            <select className="input" onChange={(e) => setForm({ ...form, studyIntensity: e.target.value })}>
+              <option value="">Select</option>
+              <option>Casual</option>
+              <option>Moderate</option>
+              <option>Serious</option>
+            </select>
+          </div>
 
-        {deadlinePassed && (
-          <p className="text-red-500 mt-3 text-center">
-            Deadline Passed — Cannot Submit
-          </p>
-        )}
+          {/* Deal Breaker */}
+          <div>
+            <label className="text-sm text-gray-600">Deal Breaker (Optional)</label>
+            <select className="input" onChange={(e) => setForm({ ...form, dealBreaker: e.target.value })}>
+              <option value="">None</option>
+              <option>Needs Silence</option>
+              <option>Early Sleeper Only</option>
+              <option>Same Study Type</option>
+            </select>
+          </div>
 
+          {/* Known Peer */}
+          <div>
+            <label className="text-sm text-gray-600">Known Peer (Optional)</label>
+            <input
+              type="text"
+              placeholder="Enter registration number"
+              className="input"
+              onChange={(e) => setForm({ ...form, knownPeer: e.target.value })}
+            />
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            className="w-full py-3 bg-gradient-to-r from-blue-500 to-green-500
+                       text-white rounded-lg font-semibold hover:scale-[1.03]
+                       transition duration-300"
+          >
+            Submit Preferences
+          </button>
+
+        </form>
       </div>
     </div>
   );

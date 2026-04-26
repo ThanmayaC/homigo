@@ -2,47 +2,44 @@ const express = require("express");
 const router = express.Router();
 const Student = require("../models/Student");
 
-// ✅ SUBMIT PREFERENCES
+// SAVE / UPDATE
 router.post("/", async (req, res) => {
+  console.log("POST /api/preferences hit");
   try {
-    const { regNo, diet, sleep, cleanliness, study, noise, personality, knownPeer } = req.body;
+    const data = req.body;
 
-    let student = await Student.findOne({ regNo });
+    console.log("Incoming:", data); // debug
 
-    if (!student) {
-      student = new Student({ regNo });
+    if (!data.regNo) {
+      return res.status(400).json({ error: "regNo missing" });
     }
 
-    student.diet = diet;
-    student.sleep = sleep;
-    student.cleanliness = cleanliness;
-    student.study = study;
-    student.noise = noise;
-    student.personality = personality;
-    student.knownPeer = knownPeer;
+    let student = await Student.findOne({ regNo: data.regNo });
 
-    await student.save();
+    if (student) {
+      student = await Student.findOneAndUpdate(
+        { regNo: data.regNo },
+        data,
+        { new: true }
+      );
+    } else {
+      student = new Student(data);
+      await student.save();
+    }
 
-    res.json({ message: "Preferences saved" });
+    // 🔥 THIS WAS MISSING
+    res.json(student);
 
   } catch (err) {
+    console.error("Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// ✅ GET ALL SUBMITTED STUDENTS (🔥 THIS IS WHAT YOU WANT)
-router.get("/submitted", async (req, res) => {
-  try {
-    const students = await Student.find({
-      diet: { $exists: true, $ne: "" }
-    }).select("regNo diet sleep cleanliness study noise personality knownPeer");
-
-    res.json(students);
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// GET ALL
+router.get("/", async (req, res) => {
+  const students = await Student.find();
+  res.json(students);
 });
 
 module.exports = router;

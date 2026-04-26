@@ -1,61 +1,30 @@
 function generateMatches(students) {
-  let directPairs = [];
-  let used = new Set();
-
-  // 🔥 STEP 1: HANDLE KNOWN PEER FIRST
-  students.forEach(s => {
-    if (s.knownPeer && !used.has(s.regNo)) {
-      const partner = students.find(
-        p => p.regNo === s.knownPeer
-      );
-
-      // ensure valid + not already used
-      if (
-        partner &&
-        !used.has(partner.regNo)
-      ) {
-        directPairs.push({
-          student1: s.regNo,
-          student2: partner.regNo,
-          score: 100 // highest priority
-        });
-
-        used.add(s.regNo);
-        used.add(partner.regNo);
-      }
-    }
-  });
-
-  // 🔥 STEP 2: REMAINING STUDENTS
-  const remaining = students.filter(
-    s => !used.has(s.regNo)
-  );
-
   let matches = [];
 
-  for (let i = 0; i < remaining.length; i++) {
-    for (let j = i + 1; j < remaining.length; j++) {
+  for (let i = 0; i < students.length; i++) {
+    for (let j = i + 1; j < students.length; j++) {
       let score = 0;
 
-      if (remaining[i].diet === remaining[j].diet) score++;
-      if (remaining[i].sleep === remaining[j].sleep) score++;
-      if (remaining[i].cleanliness === remaining[j].cleanliness) score++;
-      if (remaining[i].study === remaining[j].study) score++;
-      if (remaining[i].noise === remaining[j].noise) score++;
+      if (students[i].diet === students[j].diet) score++;
+      if (students[i].sleep === students[j].sleep) score++;
+      if (students[i].cleanliness === students[j].cleanliness) score++;
+      if (students[i].study === students[j].study) score++;
+      if (students[i].noise === students[j].noise) score++;
 
       matches.push({
-        student1: remaining[i].regNo,
-        student2: remaining[j].regNo,
+        student1: students[i].regNo,
+        student2: students[j].regNo,
         score
       });
     }
   }
 
-  // 🔥 STEP 3: SORT
+  // sort
   matches.sort((a, b) => b.score - a.score);
 
-  // 🔥 STEP 4: UNIQUE MATCHING
-  let finalMatches = [...directPairs];
+  // unique pairing
+  let used = new Set();
+  let finalMatches = [];
 
   for (let m of matches) {
     if (!used.has(m.student1) && !used.has(m.student2)) {
