@@ -2,44 +2,47 @@ const express = require("express");
 const router = express.Router();
 const Student = require("../models/Student");
 
-// SAVE / UPDATE
+// ✅ SUBMIT PREFERENCES
 router.post("/", async (req, res) => {
-  console.log("POST /api/preferences hit");
   try {
-    const data = req.body;
+    const { regNo, diet, sleep, cleanliness, study, noise, personality, knownPeer } = req.body;
 
-    console.log("Incoming:", data); // debug
+    let student = await Student.findOne({ regNo });
 
-    if (!data.regNo) {
-      return res.status(400).json({ error: "regNo missing" });
+    if (!student) {
+      student = new Student({ regNo });
     }
 
-    let student = await Student.findOne({ regNo: data.regNo });
+    student.diet = diet;
+    student.sleep = sleep;
+    student.cleanliness = cleanliness;
+    student.study = study;
+    student.noise = noise;
+    student.personality = personality;
+    student.knownPeer = knownPeer;
 
-    if (student) {
-      student = await Student.findOneAndUpdate(
-        { regNo: data.regNo },
-        data,
-        { new: true }
-      );
-    } else {
-      student = new Student(data);
-      await student.save();
-    }
+    await student.save();
 
-    // 🔥 THIS WAS MISSING
-    res.json(student);
+    res.json({ message: "Preferences saved" });
 
   } catch (err) {
-    console.error("Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET ALL
-router.get("/", async (req, res) => {
-  const students = await Student.find();
-  res.json(students);
+
+// ✅ GET ALL SUBMITTED STUDENTS (🔥 THIS IS WHAT YOU WANT)
+router.get("/submitted", async (req, res) => {
+  try {
+    const students = await Student.find({
+      diet: { $exists: true, $ne: "" }
+    }).select("regNo diet sleep cleanliness study noise personality knownPeer");
+
+    res.json(students);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
