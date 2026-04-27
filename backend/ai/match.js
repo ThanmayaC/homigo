@@ -1,7 +1,7 @@
 function generateMatches(students) {
   let directPairs = [];
-  let used = new Set();
-
+  let used = new Set(); 
+  const MIN_SCORE =5;
   // 🔥 STEP 1: HANDLE KNOWN PEER (OVERRIDE MODE)
   students.forEach(s => {
     if (
@@ -59,12 +59,16 @@ function generateMatches(students) {
   let finalMatches = [...directPairs];
 
   for (let m of matches) {
-    if (!used.has(m.student1) && !used.has(m.student2)) {
-      finalMatches.push(m);
-      used.add(m.student1);
-      used.add(m.student2);
-    }
+  if (
+    m.score >= MIN_SCORE &&
+    !used.has(m.student1) &&
+    !used.has(m.student2)
+  ) {
+    finalMatches.push(m);
+    used.add(m.student1);
+    used.add(m.student2);
   }
+}
 
   return finalMatches;
 }
