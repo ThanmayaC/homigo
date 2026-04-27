@@ -7,7 +7,10 @@ export default function AdminDashboard() {
   const [students, setStudents] = useState([]);
   const [deadline, setDeadline] = useState("");
   const [currentDeadline, setCurrentDeadline] = useState("");
+
   const [announcement, setAnnouncement] = useState("");
+  const [announcements, setAnnouncements] = useState([]);
+  const [editId, setEditId] = useState(null);
 
   // ================= FETCH =================
 
@@ -23,14 +26,24 @@ export default function AdminDashboard() {
     setCurrentDeadline(data.deadline || "Not set");
   };
 
+  const fetchAnnouncements = async () => {
+    const res = await fetch("http://localhost:5000/api/announcements");
+    const data = await res.json();
+    setAnnouncements(data);
+  };
+
   useEffect(() => {
-    fetchStudents();
-    fetchDeadline();
-  }, []);
+  const loadData = async () => {
+    await fetchStudents();
+    await fetchDeadline();
+    await fetchAnnouncements();
+  };
+
+  loadData();
+}, []);
 
   // ================= ACTIONS =================
 
-  // ✅ Save Deadline
   const saveDeadline = async () => {
     await fetch("http://localhost:5000/api/system", {
       method: "POST",
@@ -41,20 +54,44 @@ export default function AdminDashboard() {
     fetchDeadline();
   };
 
-  // ✅ Add Announcement
-  const addAnnouncement = async () => {
+  const handleAnnouncement = async () => {
     if (!announcement) return;
 
-    await fetch("http://localhost:5000/api/announcements", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: announcement })
-    });
+    // EDIT
+    if (editId) {
+      await fetch(`http://localhost:5000/api/announcements/${editId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: announcement })
+      });
+
+      setEditId(null);
+    } else {
+      // ADD
+      await fetch("http://localhost:5000/api/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: announcement })
+      });
+    }
 
     setAnnouncement("");
+    fetchAnnouncements();
   };
 
-  // ✅ Run Matching
+  const deleteAnnouncement = async (id) => {
+    await fetch(`http://localhost:5000/api/announcements/${id}`, {
+      method: "DELETE"
+    });
+
+    fetchAnnouncements();
+  };
+
+  const editAnnouncement = (a) => {
+    setAnnouncement(a.text);
+    setEditId(a._id);
+  };
+
   const runMatching = async () => {
     await fetch("http://localhost:5000/api/matching/run", {
       method: "POST"
@@ -63,12 +100,10 @@ export default function AdminDashboard() {
     alert("✅ Matching Completed");
   };
 
-  // ✅ View Matches (🔥 FIXED ROUTE)
   const viewMatches = () => {
     navigate("/admin/results");
   };
 
-  // ✅ Publish Results
   const publishResults = async () => {
     await fetch("http://localhost:5000/api/system", {
       method: "POST",
@@ -79,90 +114,149 @@ export default function AdminDashboard() {
     alert("✅ Results Published");
   };
 
+  const logout = () => {
+  localStorage.clear();
+  navigate("/");
+ };
+
   // ================= UI =================
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-green-100 p-6">
 
       {/* HEADER */}
-      <h1 className="text-3xl font-bold text-blue-600 mb-2">
-        Homigo Admin
-      </h1>
+      <div className="flex justify-between items-center mb-6">
 
-      <p className="mb-6 text-gray-600">
-        Dr. B. R. Ambedkar National Institute of Technology Jalandhar
-      </p>
-
-      {/* DEADLINE */}
-      <div className="bg-white p-5 rounded-xl shadow mb-6">
-        <h2 className="font-semibold mb-2">Set Submission Deadline</h2>
-
-        <input
-          type="datetime-local"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-          className="border p-2 mr-3 rounded"
-        />
+        <div>
+          <h1 className="text-3xl font-bold text-blue-600">
+            Homigo Admin
+          </h1>
+          <p className="text-gray-600 text-sm">
+            NIT Jalandhar • Admin Control Panel
+          </p>
+        </div>
 
         <button
-          onClick={saveDeadline}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          onClick={logout}
+          className="full bg-red-500 text-white px-4 py-2 rounded-xl hover:scale-105 transition"
         >
-          Save
+          Logout
         </button>
 
+      </div>
+
+      {/* DEADLINE */}
+      <div className="bg-white p-6 rounded-2xl shadow-lg border border-blue-200 mb-6">
+        <h2 className="font-semibold mb-3">Submission Deadline</h2>
+
+        <div className="flex gap-3">
+          <input
+            type="datetime-local"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+            className="border p-2 rounded w-full"
+          />
+
+          <button
+            onClick={saveDeadline}
+            className="bg-gradient-to-r from-blue-600 to-green-600 text-white px-5 rounded-lg"
+          >
+            Save
+          </button>
+        </div>
+
         <p className="mt-2 text-sm text-gray-500">
-          Current: {currentDeadline}
+          Current: {
+            currentDeadline !== "Not set"
+              ? new Date(currentDeadline).toLocaleString("en-IN", {
+                dateStyle: "medium",
+                timeStyle: "short"
+              })
+              : "Not set"
+          }
         </p>
       </div>
 
       {/* ANNOUNCEMENTS */}
-      <div className="bg-white p-5 rounded-xl shadow mb-6">
-        <h2 className="font-semibold mb-2">Announcements</h2>
+      <div className="bg-white p-6 rounded-2xl shadow-lg border border-blue-200 mb-6">
 
-        <input
-          value={announcement}
-          onChange={(e) => setAnnouncement(e.target.value)}
-          placeholder="Enter announcement..."
-          className="border p-2 w-full mb-3 rounded"
-        />
+        <h2 className="font-semibold mb-3">Announcements</h2>
 
-        <button
-          onClick={addAnnouncement}
-          className="bg-green-500 text-white px-4 py-2 rounded"
-        >
-          Add
-        </button>
+        <div className="flex gap-3 mb-4">
+          <input
+            value={announcement}
+            onChange={(e) => setAnnouncement(e.target.value)}
+            placeholder="Enter announcement..."
+            className="border p-2 rounded w-full"
+          />
+
+          <button
+            onClick={handleAnnouncement}
+            className="bg-gradient-to-r from-blue-600 to-green-600 text-white px-5 rounded-lg"
+          >
+            {editId ? "Update" : "Add"}
+          </button>
+        </div>
+
+        {/* LIST */}
+        <div className="space-y-3">
+          {announcements.map((a) => (
+            <div
+              key={a._id}
+              className="flex justify-between items-center bg-blue-50 p-3 rounded-xl"
+            >
+              <p>{a.text}</p>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => editAnnouncement(a)}
+                  className="px-3 py-1 bg-blue-500 text-white rounded"
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() => deleteAnnouncement(a._id)}
+                  className="px-3 py-1 bg-green-600 text-white rounded"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
       </div>
 
       {/* BUTTONS */}
-      <div className="flex gap-4 mb-6">
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
 
         <button
           onClick={runMatching}
-          className="flex-1 bg-gradient-to-r from-blue-500 to-green-500 text-white py-3 rounded-xl"
+          className="bg-gradient-to-r from-blue-600 to-green-600 text-white px-5 py-2 rounded-xl hover:scale-105 transition"
         >
           Run Matching
         </button>
 
         <button
           onClick={viewMatches}
-          className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl"
+          className="bg-gradient-to-r from-blue-600 to-green-600 text-white px-5 py-2 rounded-xl hover:scale-105 transition"
         >
           View Matches
         </button>
 
         <button
           onClick={publishResults}
-          className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl"
+          className="bg-gradient-to-r from-blue-600 to-green-600 text-white px-5 py-2 rounded-xl hover:scale-105 transition"
+
         >
           Publish Results
         </button>
 
       </div>
 
-      {/* SUBMITTED STUDENTS */}
-      <div className="bg-white p-5 rounded-xl shadow">
+      {/* STUDENTS */}
+      <div className="bg-white p-6 rounded-2xl shadow-lg border border-blue-200">
 
         <h2 className="text-xl font-semibold mb-4">
           Registered Students ({students.length})
@@ -176,7 +270,7 @@ export default function AdminDashboard() {
             {students.map((s, index) => (
               <div
                 key={index}
-                className="border p-3 rounded-lg flex justify-between"
+                className="border p-3 rounded-xl flex justify-between"
               >
                 <div>
                   <p className="font-medium">{s.regNo}</p>
@@ -186,7 +280,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {s.knownPeer && (
-                  <span className="text-xs bg-purple-100 px-2 py-1 rounded">
+                  <span className="text-xs bg-blue-100 px-2 py-1 rounded">
                     Peer: {s.knownPeer}
                   </span>
                 )}

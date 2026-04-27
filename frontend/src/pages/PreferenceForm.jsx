@@ -36,20 +36,55 @@ export default function PreferenceForm() {
 
     const regNo = localStorage.getItem("regNo");
 
-    await fetch("http://localhost:5000/api/preferences", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        ...form,
-        knownPeer: hasPeer ? form.knownPeer : "",
-        regNo
-      })
-    });
+    // ✅ IMPORTANT CHECK
+    if (!regNo) {
+      alert("Session expired. Please login again.");
+      navigate("/");
+      return;
+    }
 
-    alert("Preferences Submitted");
-    navigate("/dashboard");
+    // ✅ VALIDATION
+    if (hasPeer) {
+      if (!form.knownPeer.trim()) {
+        alert("Please enter your friend's Registration Number");
+        return;
+      }
+    } else {
+      const required = ["diet", "sleep", "cleanliness", "study", "noise", "personality"];
+      const missing = required.filter((field) => !form[field]);
+      if (missing.length > 0) {
+        alert("Please fill all preferences: " + missing.join(", "));
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch("http://localhost:5000/api/preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          ...form,
+          knownPeer: hasPeer ? form.knownPeer : "",
+          regNo
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert("Error: " + data.error);
+        return;
+      }
+
+      alert("Preferences Submitted");
+      navigate("/dashboard");
+
+    } catch (err) {
+      console.error(err);
+      alert("Error saving preferences");
+    }
   };
 
   return (
@@ -61,7 +96,7 @@ export default function PreferenceForm() {
           Fill Your Preferences
         </h2>
 
-        {/* 🔥 TOGGLE */}
+        {/* TOGGLE */}
         <div className="mb-4">
           <label className="flex items-center gap-2">
             <input
@@ -73,11 +108,12 @@ export default function PreferenceForm() {
           </label>
         </div>
 
-        {/* 🔥 CONDITIONAL UI */}
+        {/* CONDITIONAL */}
         {hasPeer ? (
           <input
             placeholder="Enter Friend's RegNo"
             className="w-full p-3 border rounded mb-4"
+            value={form.knownPeer}
             onChange={(e) =>
               setForm({ ...form, knownPeer: e.target.value })
             }
@@ -86,6 +122,7 @@ export default function PreferenceForm() {
           <>
             <select
               className="w-full p-3 border rounded mb-3"
+              value={form.diet}
               onChange={(e) => setForm({ ...form, diet: e.target.value })}
             >
               <option value="">Select Diet</option>
@@ -95,6 +132,7 @@ export default function PreferenceForm() {
 
             <select
               className="w-full p-3 border rounded mb-3"
+              value={form.sleep}
               onChange={(e) => setForm({ ...form, sleep: e.target.value })}
             >
               <option value="">Sleep Habit</option>
@@ -104,6 +142,7 @@ export default function PreferenceForm() {
 
             <select
               className="w-full p-3 border rounded mb-3"
+              value={form.cleanliness}
               onChange={(e) =>
                 setForm({ ...form, cleanliness: e.target.value })
               }
@@ -116,6 +155,7 @@ export default function PreferenceForm() {
 
             <select
               className="w-full p-3 border rounded mb-3"
+              value={form.study}
               onChange={(e) => setForm({ ...form, study: e.target.value })}
             >
               <option value="">Study Style</option>
@@ -125,6 +165,7 @@ export default function PreferenceForm() {
 
             <select
               className="w-full p-3 border rounded mb-3"
+              value={form.noise}
               onChange={(e) => setForm({ ...form, noise: e.target.value })}
             >
               <option value="">Noise Level</option>
@@ -135,6 +176,7 @@ export default function PreferenceForm() {
 
             <select
               className="w-full p-3 border rounded mb-4"
+              value={form.personality}
               onChange={(e) =>
                 setForm({ ...form, personality: e.target.value })
               }
@@ -166,6 +208,8 @@ export default function PreferenceForm() {
         )}
 
       </div>
+
     </div>
+
   );
 }

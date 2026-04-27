@@ -1,29 +1,44 @@
 const express = require("express");
 const router = express.Router();
-const Student = require("../models/Student");
+const Preference = require("../models/Preferences");
 
 // ✅ SUBMIT PREFERENCES
 router.post("/", async (req, res) => {
   try {
-    const { regNo, diet, sleep, cleanliness, study, noise, personality, knownPeer } = req.body;
 
-    let student = await Student.findOne({ regNo });
+    const {
+      regNo,
+      diet,
+      sleep,
+      cleanliness,
+      study,
+      noise,
+      personality,
+      knownPeer
+    } = req.body;
 
-    if (!student) {
-      student = new Student({ regNo });
+    if (!regNo) {
+      return res.status(400).json({ error: "regNo is required" });
     }
 
-    student.diet = diet;
-    student.sleep = sleep;
-    student.cleanliness = cleanliness;
-    student.study = study;
-    student.noise = noise;
-    student.personality = personality;
-    student.knownPeer = knownPeer;
+    // check if already exists
+    let pref = await Preference.findOne({ regNo });
 
-    await student.save();
+    if (!pref) {
+      pref = new Preference({ regNo });
+    }
 
-    res.json({ message: "Preferences saved" });
+    pref.diet = diet;
+    pref.sleep = sleep;
+    pref.cleanliness = cleanliness;
+    pref.study = study;
+    pref.noise = noise;
+    pref.personality = personality;
+    pref.knownPeer = knownPeer;
+
+    await pref.save();
+
+    res.json({ message: "Preferences saved", preference: pref });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -31,15 +46,22 @@ router.post("/", async (req, res) => {
 });
 
 
-// ✅ GET ALL SUBMITTED STUDENTS (🔥 THIS IS WHAT YOU WANT)
+// ✅ GET ALL SUBMITTED STUDENTS
 router.get("/submitted", async (req, res) => {
   try {
-    const students = await Student.find({
-      diet: { $exists: true, $ne: "" }
+    const prefs = await Preference.find({
+      $or: [
+        { knownPeer: { $exists: true, $ne: "" } },
+        { diet: { $exists: true, $ne: "" } },
+        { sleep: { $exists: true, $ne: "" } },
+        { cleanliness: { $exists: true, $ne: "" } },
+        { study: { $exists: true, $ne: "" } },
+        { noise: { $exists: true, $ne: "" } },
+        { personality: { $exists: true, $ne: "" } }
+      ]
     }).select("regNo diet sleep cleanliness study noise personality knownPeer");
 
-    res.json(students);
-
+    res.json(prefs);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

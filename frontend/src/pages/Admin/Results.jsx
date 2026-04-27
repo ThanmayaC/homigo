@@ -6,18 +6,20 @@ export default function Results() {
   const [unmatched, setUnmatched] = useState([]);
 
   useEffect(() => {
+    const fetchMatches = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/matching/all");
+
+        setMatches(res.data.matches || []);
+        setUnmatched(res.data.unmatched || []);
+
+      } catch (err) {
+        console.error("Error fetching matches:", err);
+      }
+    };
+
     fetchMatches();
   }, []);
-
-  const fetchMatches = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/matching/all");
-      setMatches(res.data.matches || []);
-      setUnmatched(res.data.unmatched || []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-green-100 p-8">
@@ -28,9 +30,9 @@ export default function Results() {
       </h1>
 
       {/* MATCHED SECTION */}
-      <div className="bg-white p-6 rounded-2xl shadow mb-8">
-        <h2 className="text-xl font-semibold mb-4 text-green-600">
-           Matched Pairs
+      <div className="bg-white p-6 rounded-2xl shadow-lg border border-blue-200 mb-8">
+        <h2 className="text-xl font-semibold mb-4 text-blue-600">
+          Matched Pairs
         </h2>
 
         {matches.length === 0 ? (
@@ -40,13 +42,13 @@ export default function Results() {
             {matches.map((m, i) => (
               <div
                 key={i}
-                className="p-4 rounded-xl border bg-gradient-to-r from-green-50 to-green-100 shadow-sm flex justify-between items-center"
+                className="p-4 rounded-xl border border-blue-200 bg-blue-50 shadow-sm flex justify-between items-center"
               >
                 <span className="font-medium text-gray-800">
                   {m.student1}
                 </span>
 
-                <span className="text-xl">↔</span>
+                <span className="text-lg text-blue-600 font-bold">↔</span>
 
                 <span className="font-medium text-gray-800">
                   {m.student2}
@@ -58,21 +60,21 @@ export default function Results() {
       </div>
 
       {/* UNMATCHED SECTION */}
-      <div className="bg-white p-6 rounded-2xl shadow">
-        <h2 className="text-xl font-semibold mb-4 text-red-500">
-          ⚠️ Unmatched Students
+      <div className="bg-white p-6 rounded-2xl shadow-lg border border-blue-200">
+        <h2 className="text-xl font-semibold mb-4 text-blue-600">
+          Unmatched Students
         </h2>
 
         {unmatched.length === 0 ? (
           <p className="text-green-600 font-medium">
-            🎉 Everyone got a roommate!
+            Everyone got a roommate 🎉
           </p>
         ) : (
           <div className="flex flex-wrap gap-3">
             {unmatched.map((u, i) => (
               <span
                 key={i}
-                className="px-4 py-2 bg-red-100 text-red-600 rounded-full text-sm font-medium"
+                className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
               >
                 {u}
               </span>

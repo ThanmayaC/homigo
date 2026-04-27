@@ -2,22 +2,22 @@ function generateMatches(students) {
   let directPairs = [];
   let used = new Set();
 
-  // 🔥 STEP 1: HANDLE KNOWN PEER FIRST
+  // 🔥 STEP 1: HANDLE KNOWN PEER (OVERRIDE MODE)
   students.forEach(s => {
-    if (s.knownPeer && !used.has(s.regNo)) {
+    if (
+      s.knownPeer &&
+      s.knownPeer.trim() !== "" &&
+      !used.has(s.regNo)
+    ) {
       const partner = students.find(
-        p => p.regNo === s.knownPeer
+        p => String(p.regNo) === String(s.knownPeer)
       );
 
-      // ensure valid + not already used
-      if (
-        partner &&
-        !used.has(partner.regNo)
-      ) {
+      if (partner && !used.has(partner.regNo)) {
         directPairs.push({
           student1: s.regNo,
           student2: partner.regNo,
-          score: 100 // highest priority
+          score: 100
         });
 
         used.add(s.regNo);
@@ -37,11 +37,12 @@ function generateMatches(students) {
     for (let j = i + 1; j < remaining.length; j++) {
       let score = 0;
 
-      if (remaining[i].diet === remaining[j].diet) score++;
-      if (remaining[i].sleep === remaining[j].sleep) score++;
-      if (remaining[i].cleanliness === remaining[j].cleanliness) score++;
-      if (remaining[i].study === remaining[j].study) score++;
-      if (remaining[i].noise === remaining[j].noise) score++;
+      // ✅ IGNORE EMPTY VALUES
+      if (remaining[i].diet && remaining[i].diet === remaining[j].diet) score++;
+      if (remaining[i].sleep && remaining[i].sleep === remaining[j].sleep) score++;
+      if (remaining[i].cleanliness && remaining[i].cleanliness === remaining[j].cleanliness) score++;
+      if (remaining[i].study && remaining[i].study === remaining[j].study) score++;
+      if (remaining[i].noise && remaining[i].noise === remaining[j].noise) score++;
 
       matches.push({
         student1: remaining[i].regNo,

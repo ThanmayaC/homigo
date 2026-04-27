@@ -4,7 +4,7 @@ export default function StudentsList() {
   const [students, setStudents] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/preferences")
+    fetch("http://localhost:5000/api/preferences/submitted")
       .then(res => res.json())
       .then(data => setStudents(data))
       .catch(err => console.error(err));
@@ -25,7 +25,6 @@ export default function StudentsList() {
             <thead className="bg-blue-100">
               <tr>
                 <th className="p-2">RegNo</th>
-                <th className="p-2">Branch</th>
                 <th className="p-2">Diet</th>
                 <th className="p-2">Sleep</th>
                 <th className="p-2">Cleanliness</th>
@@ -37,7 +36,6 @@ export default function StudentsList() {
               {students.map((s, i) => (
                 <tr key={i} className="border-t">
                   <td className="p-2">{s.regNo}</td>
-                  <td className="p-2">{s.branch}</td>
                   <td className="p-2">{s.diet}</td>
                   <td className="p-2">{s.sleep}</td>
                   <td className="p-2">{s.cleanliness}</td>

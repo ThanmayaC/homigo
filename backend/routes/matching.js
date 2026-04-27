@@ -1,83 +1,53 @@
 const express = require("express");
 const router = express.Router();
-const Student = require("../models/Student");
 
+const Student = require("../models/Student");
+const Preference = require("../models/Preferences"); // ✅ FIXED
+const generateMatches = require("../ai/match");
 
 // 🔥 RUN MATCHING
 router.post("/run", async (req, res) => {
   try {
-    const students = await Student.find();
-
-    let matches = [];
-
-    for (let i = 0; i < students.length; i++) {
-      for (let j = i + 1; j < students.length; j++) {
-
-        // PRIORITY: known peer
-        if (
-          students[i].knownPeer &&
-          students[i].knownPeer === students[j].regNo
-        ) {
-          matches.push({
-            student1: students[i].regNo,
-            student2: students[j].regNo,
-            score: 999
-          });
-          continue;
-        }
-
-        let score = 0;
-
-        if (students[i].diet === students[j].diet) score++;
-        if (students[i].sleep === students[j].sleep) score++;
-        if (students[i].cleanliness === students[j].cleanliness) score++;
-        if (students[i].study === students[j].study) score++;
-        if (students[i].noise === students[j].noise) score++;
-
-        matches.push({
-          student1: students[i].regNo,
-          student2: students[j].regNo,
-          score
-        });
-      }
+    
+    const prefs = await Preference.find();
+console.log("PREFS:", prefs);
+    if (prefs.length === 0) {
+      return res.json({ message: "No preferences found", unmatched: [] });
     }
 
-    // SORT
-    matches.sort((a, b) => b.score - a.score);
+    const finalMatches = generateMatches(prefs);
+console.log("MATCHES:", finalMatches);
 
-    let used = new Set();
-    let finalMatches = [];
+    const used = new Set();
 
-    for (let m of matches) {
-      if (!used.has(m.student1) && !used.has(m.student2)) {
-        finalMatches.push(m);
-        used.add(m.student1);
-        used.add(m.student2);
-      }
-    }
-
-    // FIND UNMATCHED
-    let unmatched = students
-      .map(s => s.regNo)
-      .filter(reg => !used.has(reg));
-
-    // CLEAR MATCH FIELD
+    // CLEAR OLD MATCHES
     await Student.updateMany({}, { $unset: { matchedWith: "" } });
 
     // SAVE MATCHES
-    for (let m of finalMatches) {
-      await Student.updateOne(
-        { regNo: m.student1 },
-        { matchedWith: m.student2 }
-      );
+for (let m of finalMatches) {
+  used.add(m.student1);
+  used.add(m.student2);
 
-      await Student.updateOne(
-        { regNo: m.student2 },
-        { matchedWith: m.student1 }
-      );
-    }
+  const r1 = await Student.findOneAndUpdate(
+    { regNo: String(m.student1) },
+    { $set: { matchedWith: String(m.student2) } },
+    { new: true }
+  );
 
-    // SAVE UNMATCHED
+  const r2 = await Student.findOneAndUpdate(
+    { regNo: String(m.student2) },
+    { $set: { matchedWith: String(m.student1) } },
+    { new: true }
+  );
+
+  console.log("Updated1:", r1);
+  console.log("Updated2:", r2);
+}
+    // FIND UNMATCHED
+    const allRegs = (await Student.find()).map(s => s.regNo);
+
+    const unmatched = allRegs.filter(reg => !used.has(reg));
+
     for (let reg of unmatched) {
       await Student.updateOne(
         { regNo: reg },
@@ -87,16 +57,17 @@ router.post("/run", async (req, res) => {
 
     res.json({
       message: "Matching complete",
+      matches: finalMatches,
       unmatched
     });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// 🔥 GET ALL MATCHES (IMPORTANT: ABOVE /:regNo)
+// ✅ GET ALL MATCHES (REQUIRED FOR UI)
 router.get("/all", async (req, res) => {
   try {
     const students = await Student.find();
@@ -128,11 +99,15 @@ router.get("/all", async (req, res) => {
   }
 });
 
-
-// 🔥 GET MATCH FOR USER
+// ✅ GET MATCH FOR ONE STUDENT
 router.get("/:regNo", async (req, res) => {
   try {
-    const student = await Student.findOne({ regNo: req.params.regNo });
+    const regNo = String(req.params.regNo).trim();
+
+    const student = await Student.findOne({ regNo });
+
+    console.log("FETCHING MATCH FOR:", regNo);
+    console.log("STUDENT:", student);
 
     if (!student || !student.matchedWith) {
       return res.json(null);
@@ -148,6 +123,7 @@ router.get("/:regNo", async (req, res) => {
     });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
